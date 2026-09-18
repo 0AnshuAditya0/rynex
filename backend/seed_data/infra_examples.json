@@ -1,0 +1,54 @@
+[
+    {
+        "_comment":  "SYNTHETIC / DEMO DATA \u2014 Rynex PoC",
+        "id":  "infra-sig-001",
+        "hidden_service_onion":  "rynex2dark7mock7x7onion4testv3fakeonionaddress56chars01.onion",
+        "signal_type":  "cert_fingerprint",
+        "value":  "SHA256:9B:71:34:F8:8C:21:49:7A:B3:32:01:FE:84:19:D4:62:3A:9F:8B:72:C4:1D:3E:5A:6B:8C:0E:2F:4A:6B:8D:0E",
+        "matched_clearnet_indicator":  "198.51.100.77",
+        "confidence_contribution":  0.78,
+        "first_seen":  "2025-01-15T08:30:00Z",
+        "source":  "synthetic_batch_v1"
+    },
+    {
+        "_comment":  "SYNTHETIC / DEMO DATA \u2014 Rynex PoC",
+        "id":  "infra-sig-002",
+        "hidden_service_onion":  "rynex4vault9mock9x9onion2demo56charsfakeonionv3test002.onion",
+        "signal_type":  "favicon_hash",
+        "value":  "3a5b28d09f783421beac7e9014589d12",
+        "matched_clearnet_indicator":  "cdn-assets.fake-shadow-relay.net",
+        "confidence_contribution":  0.68,
+        "first_seen":  "2025-02-10T14:15:00Z",
+        "source":  "synthetic_batch_v1"
+    },
+    {
+        "_comment":  "SYNTHETIC / DEMO DATA \u2014 Rynex PoC",
+        "id":  "infra-sig-003",
+        "hidden_service_onion":  "rynex9inconsist7mock7onionfake56charactersv3testonion03.onion",
+        "signal_type":  "descriptor_inconsistency",
+        "value":  "v2 descriptors rarely carry >3 intro points \u2014 possible spoofed/rotated descriptor",
+        "matched_clearnet_indicator":  null,
+        "confidence_contribution":  0.3,
+        "first_seen":  "2025-06-01T10:00:00Z",
+        "source":  "synthetic_batch_v1",
+        "mock_descriptor":  {
+                                "uptime_pattern":  "24/7",
+                                "version":  "v2",
+                                "intro_point_count":  8,
+                                "onion_address":  "rynex9inconsist7mock7onionfake56charactersv3testonion03.onion",
+                                "fingerprint":  "E1F2A3B4C5D6E7F8091A2B3C4D5E6F708192A3B4",
+                                "published":  "2026-09-17T09:00:00Z"
+                            }
+    },
+    {
+        "_comment":  "SYNTHETIC / DEMO DATA \u2014 Rynex PoC",
+        "id":  "infra-sig-004",
+        "hidden_service_onion":  "rynex0silent3mock3x3onion1baseline56charsv3testonion04.onion",
+        "signal_type":  "banner_hash",
+        "value":  "0000000000000000000000000000000000000000",
+        "matched_clearnet_indicator":  null,
+        "confidence_contribution":  0.0,
+        "first_seen":  "2025-03-01T00:00:00Z",
+        "source":  "synthetic_batch_v1"
+    }
+]
