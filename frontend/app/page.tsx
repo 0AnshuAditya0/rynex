@@ -1,69 +1,40 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="mx-auto flex max-w-5xl flex-col px-4 py-16 sm:px-6 lg:px-8">
+      <section className="rounded-lg border border-slate-800 bg-[#121827]/80 p-8 shadow-lg sm:p-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">Threat actor attribution</p>
+        <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-100 sm:text-5xl">Rynex</h1>
+        <p className="mt-3 max-w-2xl text-lg text-slate-400">
+          Dark-web threat actor attribution PoC.
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link
+            href="/overview"
+            className="inline-flex items-center justify-center rounded-lg bg-sky-500 px-6 py-3 text-base font-medium text-slate-950 transition hover:bg-sky-400 shadow-sm"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Dashboard Overview
+          </Link>
+          <Link
+            href="/search"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-slate-700"
           >
-            Documentation
-          </a>
+            Search Actors
+          </Link>
         </div>
-      </main>
-    </div>
+
+        <div className="mt-12 border-t border-slate-800/80 pt-8">
+          <h2 className="text-xl font-semibold text-slate-200">How it works</h2>
+          <ul className="mt-4 space-y-3 text-base text-slate-400">
+            <li>• <strong className="text-slate-200">Entity resolution</strong> links handles, PGP keys, wallets, and aliases into a single actor identity.</li>
+            <li>• <strong className="text-slate-200">Stylometry</strong> compares language patterns across posts to detect persistent author traits.</li>
+            <li>• <strong className="text-slate-200">Infrastructure correlation</strong> groups related domains, wallets, and communication channels.</li>
+            <li>• <strong className="text-slate-200">Confidence scoring</strong> combines each signal into a ranked attribution confidence for each actor.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
   );
 }

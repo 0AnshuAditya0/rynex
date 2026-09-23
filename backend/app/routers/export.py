@@ -26,10 +26,10 @@ def _filtered_actors(category: Optional[str]) -> List[Dict[str, Any]]:
             "category": actor.category,
             "status": actor.status,
             "confidence": conf["score"],
-            "identifier_match": conf["breakdown"]["identifier_match"],
-            "infra_match": conf["breakdown"]["infra_match"],
-            "stylometric_sim": conf["breakdown"]["stylometric_sim"],
-            "behavioural": conf["breakdown"]["behavioural"],
+            "identifier_match": conf["breakdown"]["identifier_match"]["contribution"],
+            "infra_match": conf["breakdown"]["infra_match"]["contribution"],
+            "stylometric_sim": conf["breakdown"]["stylometric_sim"]["contribution"],
+            "behavioural": conf["breakdown"]["behavioural"]["contribution"],
             "matched_actor_id": conf["matched_actor_id"],
         })
     return rows

@@ -46,6 +46,8 @@ def _actor_base(actor) -> Dict[str, Any]:
 def list_actors(
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    first_seen_after: Optional[str] = Query(None),
+    first_seen_before: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> Dict[str, Any]:
@@ -55,6 +57,18 @@ def list_actors(
         actors = [a for a in actors if a.category == category]
     if status:
         actors = [a for a in actors if a.status == status]
+    if first_seen_after:
+        try:
+            dt_after = datetime.fromisoformat(first_seen_after.replace("Z", "+00:00"))
+            actors = [a for a in actors if a.first_seen.replace(tzinfo=None) >= dt_after.replace(tzinfo=None)]
+        except ValueError:
+            pass
+    if first_seen_before:
+        try:
+            dt_before = datetime.fromisoformat(first_seen_before.replace("Z", "+00:00"))
+            actors = [a for a in actors if a.first_seen.replace(tzinfo=None) <= dt_before.replace(tzinfo=None)]
+        except ValueError:
+            pass
 
     total = len(actors)
     page = actors[offset: offset + limit]

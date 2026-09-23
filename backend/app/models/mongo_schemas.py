@@ -35,7 +35,7 @@ class ActorDoc(BaseModel):
     category: str                        # "drugs" | "hacking-services" | "financial" | "arms" | ...
     status: Literal["active", "rebranded", "inactive"] = "active"
     confidence: float = 0.0              # composite score, computed by confidence.py
-    confidence_breakdown: dict = {}       # {"identifier_match": .., "infra_match": .., "stylometric_sim": .., "behavioural": ..}
+    confidence_breakdown: dict = {}       # {"identifier_match": {"raw": .., "weight": .., "contribution": ..}, ...}
     identifiers: list[Identifier] = []
     hidden_services: list[str] = []       # onion_address values, mirrors graph edges
     linked_actor_ids: list[str] = []      # denormalized for fast profile-page reads

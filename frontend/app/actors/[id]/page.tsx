@@ -41,7 +41,7 @@ export default function ActorPage() {
   }, [id]);
 
   if (state === "loading") {
-    return <PageMessage icon={<LoaderCircle className="size-6 animate-spin" />} message="Loading actor profile…" />;
+    return <PageMessage icon={<LoaderCircle className="size-6 animate-spin text-sky-400" />} message="Loading actor profile…" />;
   }
 
   if (state === "not-found") {
@@ -53,7 +53,7 @@ export default function ActorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 sm:px-6">
+    <main className="min-h-screen bg-[#0a0e17] px-4 py-10 sm:px-6">
       <div className="mx-auto w-full max-w-4xl">
         <ActorProfile actor={actor} />
       </div>
@@ -63,8 +63,8 @@ export default function ActorPage() {
 
 function PageMessage({ icon, message }: { icon?: React.ReactNode; message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 text-zinc-700">
-      <p className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-5 py-4 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0e17] px-4 text-slate-300">
+      <p className="flex items-center gap-3 rounded-lg border border-slate-800 bg-[#121827] px-5 py-4 shadow-lg">
         {icon}
         {message}
       </p>

@@ -2,11 +2,11 @@ import SearchBar from "@/components/SearchBar";
 
 export default function SearchPage() {
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-12 text-zinc-950 sm:px-6">
+    <main className="min-h-screen bg-[#0a0e17] px-4 py-12 text-slate-100 sm:px-6">
       <section className="mx-auto w-full max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-wider text-sky-700">Rynex</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Actor search</h1>
-        <p className="mt-2 text-zinc-600">
+        <p className="text-xs font-semibold uppercase tracking-wider text-sky-400">Rynex Intelligence</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-100">Actor Search</h1>
+        <p className="mt-2 text-slate-400">
           Search the structured actor dataset by handle, PGP fingerprint, or wallet.
         </p>
         <div className="mt-8">

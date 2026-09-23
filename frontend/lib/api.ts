@@ -4,11 +4,18 @@ export type IdentifierType = "handle" | "pgp" | "wallet";
 export type ActorStatus = "active" | "rebranded" | "inactive";
 export type ExportFormat = "csv" | "json";
 
+export interface ConfidenceComponentBreakdown {
+  raw: number;
+  weight: number;
+  contribution: number;
+  display_note?: string;
+}
+
 export interface ConfidenceBreakdown {
-  identifier_match: number;
-  infra_match: number;
-  stylometric_sim: number;
-  behavioural: number;
+  identifier_match: ConfidenceComponentBreakdown;
+  infra_match: ConfidenceComponentBreakdown;
+  stylometric_sim: ConfidenceComponentBreakdown;
+  behavioural: ConfidenceComponentBreakdown;
 }
 
 export interface Identifier {
@@ -176,6 +183,8 @@ export interface ExportRecord {
 export interface ListActorsParams {
   category?: string;
   status?: ActorStatus;
+  first_seen_after?: string;
+  first_seen_before?: string;
   limit?: number;
   offset?: number;
 }

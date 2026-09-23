@@ -1,5 +1,6 @@
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -92,7 +93,11 @@ if __name__ == "__main__":
             k: v for k, v in entry.items() if k != "mock_descriptor" and k != "_comment"
         }))
         if "mock_descriptor" in entry and entry["mock_descriptor"] is not None:
-            descriptors.append(MockDescriptor(**entry["mock_descriptor"]))
+            mock_desc = dict(entry["mock_descriptor"])
+            if mock_desc.get("onion_address") == "rynex9inconsist7mock7onionfake56charactersv3testonion03.onion":
+                published = (datetime.now(timezone.utc) - timedelta(hours=6)).replace(microsecond=0)
+                mock_desc["published"] = published.isoformat().replace("+00:00", "Z")
+            descriptors.append(MockDescriptor(**mock_desc))
 
     all_onions = list({sig.hidden_service_onion for sig in signals})
     results = [

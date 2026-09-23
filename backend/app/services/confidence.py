@@ -28,19 +28,47 @@ def compute_confidence(
     w_stylo = active_weights.get("stylometric", active_weights.get("stylometric_sim", 0.25))
     w_behav = active_weights.get("behavioural", 0.1)
 
-    c_ident = round(w_ident * max(0.0, min(1.0, identifier_match)), 4)
-    c_infra = round(w_infra * max(0.0, min(1.0, infra_match)), 4)
-    c_stylo = round(w_stylo * max(0.0, min(1.0, stylometric_sim)), 4)
-    c_behav = round(w_behav * max(0.0, min(1.0, behavioural)), 4)
+    raw_values = {
+        "identifier_match": max(0.0, min(1.0, identifier_match)),
+        "infra_match": max(0.0, min(1.0, infra_match)),
+        "stylometric_sim": max(0.0, min(1.0, stylometric_sim)),
+        "behavioural": max(0.0, min(1.0, behavioural)),
+    }
 
-    raw_sum = c_ident + c_infra + c_stylo + c_behav
-    score = round(max(0.0, min(1.0, raw_sum)), 4)
+    weighted_values = {
+        "identifier_match": round(w_ident * raw_values["identifier_match"], 4),
+        "infra_match": round(w_infra * raw_values["infra_match"], 4),
+        "stylometric_sim": round(w_stylo * raw_values["stylometric_sim"], 4),
+        "behavioural": round(w_behav * raw_values["behavioural"], 4),
+    }
+
+    score = round(
+        max(0.0, min(1.0, sum(weighted_values.values()))),
+        4,
+    )
 
     breakdown = {
-        "identifier_match": c_ident,
-        "infra_match": c_infra,
-        "stylometric_sim": c_stylo,
-        "behavioural": c_behav,
+        "identifier_match": {
+            "raw": round(raw_values["identifier_match"], 4),
+            "weight": round(w_ident, 4),
+            "contribution": weighted_values["identifier_match"],
+        },
+        "infra_match": {
+            "raw": round(raw_values["infra_match"], 4),
+            "weight": round(w_infra, 4),
+            "contribution": weighted_values["infra_match"],
+        },
+        "stylometric_sim": {
+            "raw": round(raw_values["stylometric_sim"], 4),
+            "weight": round(w_stylo, 4),
+            "contribution": weighted_values["stylometric_sim"],
+            "display_note": "Percentile vs. background similarity, not a literal text-match score",
+        },
+        "behavioural": {
+            "raw": round(raw_values["behavioural"], 4),
+            "weight": round(w_behav, 4),
+            "contribution": weighted_values["behavioural"],
+        },
     }
 
     return {
