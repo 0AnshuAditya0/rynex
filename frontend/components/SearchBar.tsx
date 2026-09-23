@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 import { api, type ActorStatus, type SearchResult } from "@/lib/api";
 
 const statusStyles: Record<ActorStatus, string> = {
-  active: "bg-emerald-100 text-emerald-800",
-  rebranded: "bg-amber-100 text-amber-800",
-  inactive: "bg-zinc-200 text-zinc-700",
+  active: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  rebranded: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  inactive: "bg-slate-800 text-slate-400 border border-slate-700",
 };
 
 export default function SearchBar() {
@@ -63,7 +63,7 @@ export default function SearchBar() {
       <div className="relative">
         <Search
           aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-zinc-400"
+          className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400"
         />
         <input
           id="actor-search"
@@ -71,51 +71,51 @@ export default function SearchBar() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search a handle, PGP fingerprint, or wallet"
-          className="w-full rounded-lg border border-zinc-300 bg-white py-3 pl-11 pr-11 text-zinc-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-200"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900/90 py-3.5 pl-11 pr-11 text-slate-100 placeholder-slate-400 outline-none transition focus:border-sky-500 focus:ring-1 focus:ring-sky-500 shadow-sm"
         />
         {isLoading && (
           <LoaderCircle
             aria-label="Searching"
-            className="absolute right-3 top-1/2 size-5 -translate-y-1/2 animate-spin text-sky-700"
+            className="absolute right-3.5 top-1/2 size-5 -translate-y-1/2 animate-spin text-sky-400"
           />
         )}
       </div>
 
       {normalizedQuery.length > 0 && normalizedQuery.length < 2 && (
-        <p className="mt-3 text-sm text-zinc-500">Enter at least 2 characters to search.</p>
+        <p className="mt-3 text-xs text-slate-400">Enter at least 2 characters to search.</p>
       )}
 
       {error && (
-        <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+        <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/30 p-3 text-sm text-red-400" role="alert">
           Search is unavailable. Check that the API is running and try again.
         </p>
       )}
 
       {!isLoading && !error && normalizedQuery.length >= 2 && results.length === 0 && (
-        <p className="mt-3 text-sm text-zinc-600">No matches found.</p>
+        <p className="mt-3 text-sm text-slate-400">No matches found.</p>
       )}
 
       {results.length > 0 && !error && (
-        <ul className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-200">
+        <ul className="mt-4 overflow-hidden rounded-lg border border-slate-800 bg-[#121827] divide-y divide-slate-800/80 shadow-lg">
           {results.map((result) => (
             <li key={result.id}>
               <Link
                 href={`/actors/${result.id}`}
-                className="block p-4 transition hover:bg-sky-50 focus:bg-sky-50 focus:outline-none"
+                className="block p-4 transition hover:bg-slate-800/60 focus:bg-slate-800/60 focus:outline-none"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-zinc-950">{result.primary_handle}</p>
+                    <p className="truncate font-semibold text-slate-100">{result.primary_handle}</p>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
-                      <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-800">
+                      <span className="rounded-full bg-sky-500/10 border border-sky-500/20 px-2.5 py-0.5 text-sky-400">
                         {result.category}
                       </span>
-                      <span className={`rounded-full px-2 py-1 ${statusStyles[result.status]}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 capitalize ${statusStyles[result.status]}`}>
                         {result.status}
                       </span>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-zinc-700">
+                  <p className="text-sm font-semibold text-sky-400">
                     Rebrand Confidence: {Math.round(result.confidence * 100)}%
                   </p>
                 </div>

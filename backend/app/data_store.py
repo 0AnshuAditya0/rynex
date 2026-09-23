@@ -1,11 +1,17 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from app.models.mongo_schemas import ActorDoc, InfraSignal, MockDescriptor, PostDoc
 
+_DEMO_DESCRIPTOR_ONION = "rynex9inconsist7mock7onionfake56charactersv3testonion03.onion"
 _SEED_DIR = Path(__file__).resolve().parents[1] / "seed_data"
+
+
+def _demo_descriptor_published() -> datetime:
+    """Keep the descriptor inconsistency demo active regardless of calendar date."""
+    return (datetime.now(timezone.utc) - timedelta(hours=6)).replace(microsecond=0).replace(tzinfo=None)
 
 
 def _to_naive_utc(dt: datetime) -> datetime:
@@ -39,7 +45,11 @@ def _normalize_signal(raw: dict) -> InfraSignal:
 
 
 def _normalize_descriptor(raw: dict) -> MockDescriptor:
-    desc = MockDescriptor(**raw)
+    normalized = dict(raw)
+    if normalized.get("onion_address") == _DEMO_DESCRIPTOR_ONION:
+        normalized["published"] = _demo_descriptor_published()
+
+    desc = MockDescriptor(**normalized)
     return desc.model_copy(update={"published": _to_naive_utc(desc.published)})
 
 

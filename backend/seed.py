@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -25,7 +26,16 @@ from app.models.mongo_schemas import (
 
 def load_json_file(file_path: Path) -> Any:
     with open(file_path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
+        payload = json.load(f)
+
+    if file_path.name == "infra_examples.json":
+        for item in payload:
+            mock_desc = item.get("mock_descriptor")
+            if isinstance(mock_desc, dict) and mock_desc.get("onion_address") == "rynex9inconsist7mock7onionfake56charactersv3testonion03.onion":
+                published = (datetime.now(timezone.utc) - timedelta(hours=6)).replace(microsecond=0)
+                mock_desc["published"] = published.isoformat().replace("+00:00", "Z")
+
+    return payload
 
 
 async def seed_mongodb(
