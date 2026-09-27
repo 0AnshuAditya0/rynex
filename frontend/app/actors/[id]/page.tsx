@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import ActorProfile from "@/components/ActorProfile";
+import AbstractBg from "@/components/AbstractBg";
 import { api, type Actor } from "@/lib/api";
 
 type PageState = "loading" | "ready" | "not-found" | "error";
@@ -41,7 +42,7 @@ export default function ActorPage() {
   }, [id]);
 
   if (state === "loading") {
-    return <PageMessage icon={<LoaderCircle className="size-6 animate-spin text-sky-400" />} message="Loading actor profile…" />;
+    return <PageMessage icon={<LoaderCircle className="size-6 animate-spin text-blue-700" />} message="Loading actor profile…" />;
   }
 
   if (state === "not-found") {
@@ -53,8 +54,9 @@ export default function ActorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e17] px-4 py-10 sm:px-6">
-      <div className="mx-auto w-full max-w-4xl">
+    <main className="relative min-h-screen bg-[#fafafa] px-4 py-10 sm:px-6">
+      <AbstractBg />
+      <div className="relative mx-auto w-full max-w-5xl">
         <ActorProfile actor={actor} />
       </div>
     </main>
@@ -63,8 +65,8 @@ export default function ActorPage() {
 
 function PageMessage({ icon, message }: { icon?: React.ReactNode; message: string }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0a0e17] px-4 text-slate-300">
-      <p className="flex items-center gap-3 rounded-lg border border-slate-800 bg-[#121827] px-5 py-4 shadow-lg">
+    <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4 text-neutral-600">
+      <p className="flex items-center gap-3 rounded-none border border-neutral-200 bg-white px-5 py-4">
         {icon}
         {message}
       </p>

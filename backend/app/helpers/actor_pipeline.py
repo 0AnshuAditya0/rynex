@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 from app import data_store
+from app.services.behavioural import compute_behavioural_score
 from app.services.confidence import compute_confidence
 from app.services.entity_resolution import find_shared_identifier_links
 from app.services.infra_correlation import compute_infra_match_score
@@ -64,11 +65,21 @@ def compute_actor_confidence(actor_id: str) -> Dict[str, Any]:
         stylo_score = calib["percentile"]
         stylo_detail = calib
         matched_actor_id = match_id
+        behav = compute_behavioural_score(
+            data_store.get_actor_by_id(actor_id),
+            data_store.get_posts_by_actor(actor_id),
+            data_store.get_actor_by_id(match_id),
+            data_store.get_posts_by_actor(match_id),
+        )
+        behav_score = behav["score"]
+        behav_detail = behav
     else:
         id_score = 0.0
         stylo_score = 0.0
         stylo_detail = None
         matched_actor_id = None
+        behav_score = 0.0  # legitimate 0.0: no candidate to compare against
+        behav_detail = None
 
     infra_score = _infra_score_for_actor(actor_id, matched_actor_id)
 
@@ -76,7 +87,7 @@ def compute_actor_confidence(actor_id: str) -> Dict[str, Any]:
         identifier_match=id_score,
         infra_match=infra_score,
         stylometric_sim=stylo_score,
-        behavioural=0.0,
+        behavioural=behav_score,
     )
 
     return {
@@ -85,6 +96,7 @@ def compute_actor_confidence(actor_id: str) -> Dict[str, Any]:
         "matched_actor_id": matched_actor_id,
         "entity_link": match[1] if match else None,
         "stylometry": stylo_detail,
+        "behavioural_detail": behav_detail,
         "infra_match_raw": infra_score,
     }
 

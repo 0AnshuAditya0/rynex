@@ -61,3 +61,7 @@ actor1.png
 actor3.png
 actor_zero.png
 shot_*.png
+
+
+/venv
+script.md

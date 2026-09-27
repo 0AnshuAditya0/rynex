@@ -17,7 +17,8 @@ def compute_confidence(
 ) -> Dict[str, Any]:
     """
     Computes composite deanonymization confidence score from multi-source signals.
-    Behavioural defaults to 0.0 as an intentional stub for pending behavioural features.
+    Behavioural is 0.0 when there is no comparison candidate (legitimate 0.0,
+    not a stub — see behavioural.py, wired via actor_pipeline.py).
     """
     active_weights = dict(DEFAULT_WEIGHTS)
     if weights is not None:
@@ -89,6 +90,7 @@ if __name__ == "__main__":
         sys.path.insert(0, str(backend_dir))
 
     from app.models.mongo_schemas import ActorDoc, InfraSignal, PostDoc
+    from app.services.behavioural import compute_behavioural_score
     from app.services.entity_resolution import find_shared_identifier_links
     from app.services.stylometry import calibrate_stylometric_confidence
 
@@ -108,6 +110,10 @@ if __name__ == "__main__":
     all_posts_by_actor = defaultdict(list)
     for p in posts:
         all_posts_by_actor[p.actor_id].append(p.raw_text)
+
+    posts_by_actor = defaultdict(list)
+    for p in posts:
+        posts_by_actor[p.actor_id].append(p)
 
     infra_score_map = {}
     for sig in infra_signals:
@@ -142,18 +148,23 @@ if __name__ == "__main__":
         raw_sim = calib["raw_score"]
         calib_pctl = calib["percentile"]
 
+        behav = compute_behavioural_score(
+            doc_a, posts_by_actor.get(actor_a, []),
+            doc_b, posts_by_actor.get(actor_b, []),
+        )
+
         uncalibrated_result = compute_confidence(
             identifier_match=id_score,
             infra_match=infra_score,
             stylometric_sim=raw_sim,
-            behavioural=0.0,
+            behavioural=behav["score"],
         )
 
         calibrated_result = compute_confidence(
             identifier_match=id_score,
             infra_match=infra_score,
             stylometric_sim=calib_pctl,
-            behavioural=0.0,
+            behavioural=behav["score"],
         )
 
         print(f"\nRebrand Pair: {actor_a} <-> {actor_b} ({category.upper()})")
@@ -163,9 +174,25 @@ if __name__ == "__main__":
         print(f"  Stylometry Null   : mean={calib['background_mean']:.4f}, std={calib['background_std']:.4f}, n={calib['n_background']}")
         print(f"  Raw Stylo Score   : {raw_sim:.4f}")
         print(f"  Calibrated Pctl   : {calib_pctl:.4f} ({calib_pctl * 100:.1f}th percentile)")
+        print(f"  Behavioural       : posting_pattern_sim={behav['posting_pattern_sim']:.4f}, "
+              f"identifier_hygiene_sim={behav['identifier_hygiene_sim']:.4f}, "
+              f"combined={behav['score']:.4f}")
         print(f"  Old Composite     : {uncalibrated_result['score']:.4f} (using raw stylo score)")
         print(f"  New Composite     : {calibrated_result['score']:.4f} (using calibrated percentile)")
         print(f"  Score Gain        : +{calibrated_result['score'] - uncalibrated_result['score']:.4f}")
         print(f"  Calibrated Breakdown: {calibrated_result['breakdown']}")
+
+    # Spot-check: one random non-matching pair for comparison.
+    rand_a, rand_b = "actor-rebrand-01-old", "actor-arms-001"
+    rand_behav = compute_behavioural_score(
+        actor_by_id[rand_a], posts_by_actor.get(rand_a, []),
+        actor_by_id[rand_b], posts_by_actor.get(rand_b, []),
+    )
+    rand_calib = calibrate_stylometric_confidence(rand_a, rand_b, all_posts_by_actor)
+    print(f"\nRandom Pair: {rand_a} <-> {rand_b}")
+    print(f"  Raw Stylo Score   : {rand_calib['raw_score']:.4f} (vs rebrands above)")
+    print(f"  Behavioural       : posting_pattern_sim={rand_behav['posting_pattern_sim']:.4f}, "
+          f"identifier_hygiene_sim={rand_behav['identifier_hygiene_sim']:.4f}, "
+          f"combined={rand_behav['score']:.4f} (vs rebrands above)")
 
     print("\n" + "=" * 80)

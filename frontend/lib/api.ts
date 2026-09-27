@@ -2,7 +2,7 @@ import axios from "axios";
 
 export type IdentifierType = "handle" | "pgp" | "wallet";
 export type ActorStatus = "active" | "rebranded" | "inactive";
-export type ExportFormat = "csv" | "json";
+export type ExportFormat = "csv" | "json" | "pdf" | "html";
 
 export interface ConfidenceComponentBreakdown {
   raw: number;
@@ -141,13 +141,18 @@ export interface GraphEdgeData {
   id?: string;
   source: string;
   target: string;
-  label: IdentifierType | "SAME_AS";
+  label: IdentifierType | "SAME_AS" | "TRUSTS";
   score: number;
+  trust_type?: "shared_infra" | "shared_platform";
+  evidence?: string;
 }
 
 export interface GraphResponse {
   nodes: Array<{ data: GraphNodeData }>;
   edges: Array<{ data: GraphEdgeData }>;
+  trust_total?: number;
+  trust_shown?: number;
+  trust_hidden?: number;
 }
 
 export interface ExtractedIdentifier {
@@ -165,6 +170,98 @@ export interface PostExtractionResponse {
 export interface HealthResponse {
   status: "ok";
   actors_loaded: number;
+}
+
+export interface CalibrationPair {
+  old_id: string;
+  new_id: string;
+  raw_stylometric_score: number;
+  rank_of_true_match: number | null;
+  n_candidates: number;
+}
+
+export interface CalibrationResponse {
+  method: string;
+  n_actors_scored: number;
+  n_ground_truth_pairs: number;
+  pairs: CalibrationPair[];
+  summary: {
+    top1_accuracy: number;
+    top5_accuracy: number;
+    mrr: number;
+    roc_auc_stylometry_only: number;
+    n_positive_scores: number;
+    n_negative_scores: number;
+  };
+  pr_curve: Array<{ threshold: number; precision: number; recall: number }>;
+  roc_curve: Array<{ threshold: number; fpr: number; tpr: number }>;
+}
+
+export interface ScanStatus {
+  simulated: boolean;
+  label: string;
+  tick: number;
+  last_scan: string | null;
+  recent_events: Array<{
+    tick: number;
+    actor_id: string;
+    primary_handle: string;
+    post_id: string;
+    timestamp: string;
+  }>;
+  note: string;
+}
+
+export interface ScanTick extends ScanStatus {
+  actor_id?: string;
+  primary_handle?: string;
+  post_id?: string;
+  timestamp?: string;
+}
+
+export interface WatchlistItem {
+  id: string;
+  primary_handle: string;
+  category: string;
+  status: ActorStatus;
+  confidence: number;
+  matched_actor_id: string | null;
+}
+
+export interface WatchlistResponse {
+  min_confidence: number;
+  total: number;
+  items: WatchlistItem[];
+}
+
+export interface InfraSummary {
+  total_actors: number;
+  actors_with_hidden_services: number;
+  actors_with_matches: number;
+  signal_counts: Record<string, number>;
+  cert_fingerprint_matches: number;
+  favicon_hash_matches: number;
+  banner_hash_matches: number;
+  descriptor_flagged_count: number;
+}
+
+export interface SampleArtifact {
+  label: string;
+  note: string;
+  source_file: string;
+  parsed: {
+    sha256_fingerprint: string;
+    subject_cn: string | null;
+    issuer_cn: string | null;
+    self_signed: boolean;
+    sans: string[];
+    not_before: string;
+    not_after: string;
+    signature_hash_algorithm: string | null;
+    public_key_algorithm: string;
+    public_key_size: number | null;
+    serial_number: string;
+  };
 }
 
 export interface ExportRecord {
@@ -218,13 +315,47 @@ export const api = {
   exportActors: async (
     format: ExportFormat,
     category?: string,
-  ): Promise<ExportRecord[] | string> =>
-    (
+  ): Promise<ExportRecord[] | string | Blob> => {
+    if (format === "pdf") {
+      const res = await apiClient.get("/export", {
+        params: { format, category },
+        responseType: "blob",
+      });
+      return res.data as Blob;
+    }
+    return (
       await apiClient.get<ExportRecord[] | string>("/export", {
         params: { format, category },
         responseType: format === "csv" ? "text" : "json",
       })
-    ).data,
+    ).data;
+  },
+
+  exportActorCase: async (actorId: string, format: "pdf" | "html" = "pdf"): Promise<Blob | string> => {
+    const res = await apiClient.get(`/export/actor/${encodeURIComponent(actorId)}`, {
+      params: { format },
+      responseType: format === "pdf" ? "blob" : "text",
+    });
+    return res.data as Blob | string;
+  },
+
+  getCalibration: async (): Promise<CalibrationResponse> =>
+    (await apiClient.get<CalibrationResponse>("/metrics/calibration")).data,
+
+  getScanStatus: async (): Promise<ScanStatus> =>
+    (await apiClient.get<ScanStatus>("/scan/status")).data,
+
+  triggerScan: async (): Promise<ScanTick> =>
+    (await apiClient.post<ScanTick>("/scan/trigger")).data,
+
+  getWatchlist: async (minConfidence = 0.7): Promise<WatchlistResponse> =>
+    (await apiClient.get<WatchlistResponse>("/watchlist", { params: { min_confidence: minConfidence } })).data,
+
+  getSampleArtifact: async (): Promise<SampleArtifact> =>
+    (await apiClient.get<SampleArtifact>("/infra/sample-artifact")).data,
+
+  getInfraSummary: async (): Promise<InfraSummary> =>
+    (await apiClient.get<InfraSummary>("/metrics/infra-summary")).data,
 };
 
 export default apiClient;

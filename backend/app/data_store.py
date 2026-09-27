@@ -111,3 +111,20 @@ def get_all_descriptors() -> List[MockDescriptor]:
 def get_all_posts_map() -> Dict[str, List[str]]:
     return {actor_id: [p.raw_text for p in posts]
             for actor_id, posts in _POSTS_BY_ACTOR.items()}
+
+
+def append_simulated_post(post: PostDoc) -> PostDoc:
+    """Append an in-memory demo post (SIMULATED feed only, no persistence)."""
+    _POSTS.append(post)
+    _POSTS_BY_ACTOR.setdefault(post.actor_id, []).append(post)
+    _POST_INDEX[post.id] = post
+    actor = _ACTOR_INDEX.get(post.actor_id)
+    if actor is not None:
+        _ACTOR_INDEX[post.actor_id] = actor.model_copy(
+            update={"last_seen": post.timestamp}
+        )
+        for i, a in enumerate(_ACTORS):
+            if a.id == post.actor_id:
+                _ACTORS[i] = _ACTOR_INDEX[post.actor_id]
+                break
+    return post

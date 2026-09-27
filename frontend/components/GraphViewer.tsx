@@ -9,10 +9,10 @@ import { api, type GraphResponse } from "@/lib/api";
 type GraphState = "loading" | "ready" | "empty" | "error";
 
 const TYPE_COLORS: Record<string, string> = {
-  actor: "#0f172a",
-  handle: "#38bdf8",
-  pgp: "#a78bfa",
-  wallet: "#fbbf24",
+  actor: "#1d4ed8",
+  handle: "#2563eb",
+  pgp: "#1e40af",
+  wallet: "#b45309",
 };
 
 function formatNodeLabel(value: string) {
@@ -23,7 +23,7 @@ function formatNodeLabel(value: string) {
   return `${trimmed.slice(0, 8)}...`;
 }
 
-export default function GraphViewer({ actorId }: { actorId: string }) {
+export default function GraphViewer({ actorId, heightPx = 430 }: { actorId: string; heightPx?: number }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const networkRef = useRef<Network | null>(null);
@@ -77,10 +77,10 @@ export default function GraphViewer({ actorId }: { actorId: string }) {
           shape: "dot",
           size: type === "actor" ? 30 : 14,
           color: {
-            background: TYPE_COLORS[type] ?? "#94a3b8",
+            background: TYPE_COLORS[type] ?? "#9ca3af",
           },
           font: {
-            color: "#f8fafc",
+            color: "#111827",
             face: "Inter, sans-serif",
             vadjust: 0,
           },
@@ -89,18 +89,26 @@ export default function GraphViewer({ actorId }: { actorId: string }) {
     );
 
     const edges = new DataSet(
-      graph.edges.map((edge) => ({
-        id: edge.data.id ?? `${edge.data.source}-${edge.data.target}`,
-        from: edge.data.source,
-        to: edge.data.target,
-        label: edge.data.label,
-        color: edge.data.label === "SAME_AS" ? "#f97316" : "#475569",
-        dashes: edge.data.label === "SAME_AS",
-        width: edge.data.label === "SAME_AS" ? 3 : 1,
-        font: {
-          color: "#94a3b8",
-        },
-      })),
+      graph.edges.map((edge) => {
+        const label = edge.data.label;
+        // SAME_AS (confirmed rebrand): thick dashed blue.
+        // TRUSTS (weak signal): thin dotted gray, no arrow — never conflate.
+        const isSameAs = label === "SAME_AS";
+        const isTrusts = label === "TRUSTS";
+        return {
+          id: edge.data.id ?? `${edge.data.source}-${edge.data.target}`,
+          from: edge.data.source,
+          to: edge.data.target,
+          label,
+          title: edge.data.evidence ?? label,
+          color: isSameAs ? "#1d4ed8" : isTrusts ? "#9ca3af" : "#d1d5db",
+          dashes: isSameAs ? true : isTrusts ? [2, 4] : false,
+          width: isSameAs ? 3 : 1,
+          font: {
+            color: "#6b7280",
+          },
+        };
+      }),
     );
 
     const options = {
@@ -111,10 +119,10 @@ export default function GraphViewer({ actorId }: { actorId: string }) {
         borderWidth: 2,
         borderWidthSelected: 2,
         color: {
-          border: "#1e293b",
+          border: "#ffffff",
         },
         font: {
-          color: "#f8fafc",
+          color: "#111827",
         },
       },
       edges: {
@@ -183,30 +191,40 @@ export default function GraphViewer({ actorId }: { actorId: string }) {
   }, [graph, router]);
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-[#121827] p-3 shadow-sm">
+    <div className="rounded-none border border-neutral-200 bg-white p-3">
       {state === "loading" && (
-        <div className="flex h-[430px] items-center justify-center text-sm text-slate-400">
+        <div className="flex items-center justify-center text-sm text-neutral-500" style={{ height: heightPx }}>
           Loading relationship graph…
         </div>
       )}
 
       {state === "error" && (
-        <div className="flex h-[430px] items-center justify-center text-sm text-red-400">
+        <div className="flex items-center justify-center text-sm text-red-600" style={{ height: heightPx }}>
           Relationship graph is unavailable.
         </div>
       )}
 
       {state === "empty" && (
-        <div className="flex h-[430px] items-center justify-center text-sm text-slate-400">
+        <div className="flex items-center justify-center text-sm text-neutral-500" style={{ height: heightPx }}>
           No relationship graph data for this actor.
         </div>
       )}
 
       {state === "ready" && graph && (
-        <div
-          ref={containerRef}
-          className="graph-viewer relative h-[430px] w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950/80"
-        />
+        <>
+          <div
+            ref={containerRef}
+            className="graph-viewer relative w-full overflow-hidden rounded-none border border-neutral-200 bg-white"
+            style={{ height: heightPx }}
+          />
+          {(graph.trust_hidden ?? 0) > 0 && (
+            <p className="mt-2 text-[11px] text-neutral-400">
+              Showing top {graph.trust_shown ?? 0} trust links ({graph.trust_total ?? 0} total);{" "}
+              {graph.trust_hidden} additional platform-overlap{" "}
+              {(graph.trust_hidden ?? 0) === 1 ? "link" : "links"} not shown.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

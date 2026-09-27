@@ -115,6 +115,7 @@ def get_actor(actor_id: str) -> Dict[str, Any]:
     profile["matched_actor_id"] = conf["matched_actor_id"]
     profile["entity_link"] = conf["entity_link"]
     profile["stylometry"] = conf["stylometry"]
+    profile["behavioural_detail"] = conf.get("behavioural_detail")
     profile["linked_actors"] = linked
     profile["posts"] = [
         {

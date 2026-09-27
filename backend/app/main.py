@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import data_store
-from app.routers import actors, export, graph, infra, posts, search
+from app.routers import actors, export, graph, infra, metrics, posts, scan, search, watchlist
 
 app = FastAPI(title="Rynex API", version="0.1.0")
 
@@ -20,6 +20,9 @@ app.include_router(graph.router)
 app.include_router(posts.router)
 app.include_router(infra.router)
 app.include_router(export.router)
+app.include_router(metrics.router)
+app.include_router(scan.router)
+app.include_router(watchlist.router)
 
 
 @app.get("/health")

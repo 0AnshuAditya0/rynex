@@ -4,7 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LoaderCircle, Users, Activity, Layers, ShieldCheck, Link2 } from "lucide-react";
 
+import { SectionTag } from "@/components/SectionTag";
+import AbstractBg from "@/components/AbstractBg";
 import { api, type ActorSummary, type Actor } from "@/lib/api";
+import {
+  formatSynced,
+  getCachedOverviewStats,
+  setCachedOverviewStats,
+  type OverviewStatsCache,
+} from "@/lib/statsCache";
 
 const REBRAND_PAIRS = [
   { oldId: "actor-rebrand-01-old", newId: "actor-rebrand-01-new", label: "Pair 1 (Drugs)" },
@@ -20,6 +28,10 @@ export default function OverviewPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cardCache, setCardCache] = useState<OverviewStatsCache | null>(null);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +39,16 @@ export default function OverviewPage() {
     async function loadData() {
       setLoading(true);
       setError(null);
+      setStale(false);
+
+      // Instant: last-known card values first, no spinner from cache.
+      const cached = getCachedOverviewStats();
+      if (cached) {
+        setCardCache(cached);
+        setLastSynced(cached.lastSynced);
+        setLoading(false);
+      }
+      setRefreshing(true);
 
       try {
         const [healthRes, listRes] = await Promise.all([
@@ -38,6 +60,20 @@ export default function OverviewPage() {
 
         setActorsLoaded(healthRes.actors_loaded);
         setActors(listRes.items);
+
+        // Refresh the card cache from live counts.
+        const sc = { active: 0, rebranded: 0, inactive: 0 };
+        listRes.items.forEach((a) => {
+          if (a.status in sc) sc[a.status as keyof typeof sc] += 1;
+        });
+        const entry = setCachedOverviewStats({
+          actorsLoaded: healthRes.actors_loaded,
+          active: sc.active,
+          rebranded: sc.rebranded,
+          inactive: sc.inactive,
+        });
+        setCardCache(entry);
+        setLastSynced(entry.lastSynced);
 
         // Fetch exact details for the 3 ground-truth rebrand pairs from live API
         const pairsResults = await Promise.all(
@@ -55,11 +91,18 @@ export default function OverviewPage() {
         }
       } catch {
         if (!cancelled) {
-          setError("Failed to load live dashboard metrics.");
+          if (getCachedOverviewStats()) {
+            // Backend unreachable: keep cached cards silently, flag stale.
+            // Tables below stay empty — the banner says why.
+            setStale(true);
+          } else {
+            setError("Failed to load live dashboard metrics.");
+          }
         }
       } finally {
         if (!cancelled) {
           setLoading(false);
+          setRefreshing(false);
         }
       }
     }
@@ -72,10 +115,10 @@ export default function OverviewPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center px-4 text-slate-400">
-        <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-[#121827] px-6 py-4 shadow-lg">
-          <LoaderCircle className="size-5 animate-spin text-sky-400" />
-          <span>Loading live telemetry & metrics…</span>
+      <main className="flex min-h-[70vh] items-center justify-center bg-[#fafafa] px-4">
+        <div className="flex items-center gap-3 border border-neutral-200 bg-white px-6 py-4">
+          <LoaderCircle className="size-5 animate-spin text-blue-700" />
+          <span className="text-neutral-600">Loading live telemetry & metrics…</span>
         </div>
       </main>
     );
@@ -83,9 +126,9 @@ export default function OverviewPage() {
 
   if (error || !actors) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center px-4 text-red-400">
-        <div className="rounded-lg border border-red-500/30 bg-red-950/30 px-6 py-4">
-          {error ?? "Error loading overview."}
+      <main className="flex min-h-[70vh] items-center justify-center bg-[#fafafa] px-4">
+        <div className="border border-red-300 bg-red-50 px-6 py-4 text-red-600">
+          {error ?? "Error loading dashboard."}
         </div>
       </main>
     );
@@ -107,178 +150,204 @@ export default function OverviewPage() {
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 5);
 
+  // Live counts when actors loaded, else last-known cached cards.
+  const live = actors.length > 0;
+  const cardLoaded = live ? (actorsLoaded ?? actors.length) : cardCache?.actorsLoaded;
+  const cardActive = live ? statusCounts.active : cardCache?.active;
+  const cardRebranded = live ? statusCounts.rebranded : cardCache?.rebranded;
+  const cardInactive = live ? statusCounts.inactive : cardCache?.inactive;
+  const cardText = (v: number | null | undefined) => (v ?? "…");
+
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">Telemetry & Analytics</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-100">Overview Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-400">Live intelligence summary from system data store.</p>
-      </div>
-
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-slate-800 bg-[#121827] p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Actors Loaded</span>
-            <Users className="size-5 text-sky-400" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-100">{actorsLoaded ?? actors.length}</p>
-          <span className="mt-1 block text-xs text-slate-500">Live data store records</span>
+    <main className="relative bg-[#fafafa] text-neutral-900">
+      <AbstractBg />
+      <div className="relative mx-auto max-w-[1440px] space-y-10 px-4 py-10 sm:px-6 lg:px-8">
+        <div>
+          <SectionTag index="01" label="TELEMETRY" dark />
+          <h1 className="mt-3 text-3xl font-black tracking-tight">Dashboard</h1>
+          <p className="mt-1 font-mono text-xs tracking-widest text-neutral-500">
+            LIVE INTELLIGENCE SUMMARY // SYSTEM DATA STORE // LAST SYNCED: {formatSynced(lastSynced).toUpperCase()}
+          </p>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-[#121827] p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Active Personas</span>
-            <Activity className="size-5 text-emerald-400" />
+        {stale && (
+          <div className="border border-amber-300 bg-amber-50 px-4 py-3 font-mono text-xs tracking-widest text-amber-800">
+            FAILED TO FETCH LIVE DATA — SHOWING LAST-SYNCED FROM {formatSynced(lastSynced).toUpperCase()}
           </div>
-          <p className="mt-3 text-3xl font-bold text-slate-100">{statusCounts.active ?? 0}</p>
-          <span className="mt-1 block text-xs text-slate-500">Currently monitored</span>
+        )}
+
+        {refreshing && !loading && !stale && (
+          <div className="flex items-center gap-2 font-mono text-[11px] tracking-widest text-blue-700">
+            <LoaderCircle className="size-3.5 animate-spin" />
+            REFRESHING LIVE DATA…
+          </div>
+        )}
+
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 gap-px border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-white p-5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-widest text-neutral-500">ACTORS LOADED</span>
+              <Users className="size-5 text-blue-700" />
+            </div>
+            <p className="mt-3 font-mono text-3xl font-bold">{cardText(cardLoaded)}</p>
+            <span className="mt-1 block font-mono text-[11px] tracking-widest text-neutral-400">LIVE DATA STORE RECORDS</span>
+          </div>
+
+          <div className="bg-white p-5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-widest text-neutral-500">ACTIVE PERSONAS</span>
+              <Activity className="size-5 text-blue-700" />
+            </div>
+            <p className="mt-3 font-mono text-3xl font-bold">{cardText(cardActive)}</p>
+            <span className="mt-1 block font-mono text-[11px] tracking-widest text-neutral-400">CURRENTLY MONITORED</span>
+          </div>
+
+          <div className="bg-white p-5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-widest text-neutral-500">REBRANDED PERSONAS</span>
+              <Layers className="size-5 text-blue-700" />
+            </div>
+            <p className="mt-3 font-mono text-3xl font-bold">{cardText(cardRebranded)}</p>
+            <span className="mt-1 block font-mono text-[11px] tracking-widest text-neutral-400">IDENTIFIED REBRAND LINKS</span>
+          </div>
+
+          <div className="bg-white p-5">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] tracking-widest text-neutral-500">INACTIVE PERSONAS</span>
+              <ShieldCheck className="size-5 text-neutral-400" />
+            </div>
+            <p className="mt-3 font-mono text-3xl font-bold">{cardText(cardInactive)}</p>
+            <span className="mt-1 block font-mono text-[11px] tracking-widest text-neutral-400">HISTORICAL RECORDS</span>
+          </div>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-[#121827] p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Rebranded Personas</span>
-            <Layers className="size-5 text-amber-400" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-100">{statusCounts.rebranded ?? 0}</p>
-          <span className="mt-1 block text-xs text-slate-500">Identified rebrand links</span>
-        </div>
+        <div className="grid grid-cols-1 gap-px border border-neutral-200 bg-neutral-200 lg:grid-cols-2">
+          {/* Category Breakdown */}
+          <section className="bg-white p-6">
+            <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-neutral-500">CATEGORY BREAKDOWN</h2>
+            <p className="mt-1 text-xs text-neutral-500">Distribution of threat actors by market category</p>
 
-        <div className="rounded-lg border border-slate-800 bg-[#121827] p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Inactive Personas</span>
-            <ShieldCheck className="size-5 text-slate-500" />
-          </div>
-          <p className="mt-3 text-3xl font-bold text-slate-100">{statusCounts.inactive ?? 0}</p>
-          <span className="mt-1 block text-xs text-slate-500">Historical records</span>
-        </div>
-      </div>
+            <div className="mt-6 space-y-4">
+              {Object.entries(categoryCounts).map(([cat, count]) => {
+                const pct = Math.round((count / actors.length) * 100);
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between font-mono text-xs">
+                      <span className="tracking-widest text-neutral-600">{cat.replace("-", " ").toUpperCase()}</span>
+                      <span className="font-bold text-neutral-900">
+                        {count} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 w-full bg-neutral-100">
+                      <div
+                        className="h-full bg-blue-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Category Breakdown */}
-        <section className="rounded-lg border border-slate-800 bg-[#121827] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-100">Category Breakdown</h2>
-          <p className="mt-1 text-xs text-slate-400">Distribution of threat actors by market category</p>
+          {/* Known Ground-Truth Rebrand Pairs (Live API Scores) */}
+          <section className="bg-white p-6">
+            <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-neutral-500">GROUND-TRUTH REBRAND PAIRS</h2>
+            <p className="mt-1 text-xs text-neutral-500">Live attribution scores calculated by API pipeline</p>
 
-          <div className="mt-6 space-y-4">
-            {Object.entries(categoryCounts).map(([cat, count]) => {
-              const pct = Math.round((count / actors.length) * 100);
-              return (
-                <div key={cat}>
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                    <span className="capitalize">{cat.replace("-", " ")}</span>
-                    <span className="text-slate-400">
-                      {count} ({pct}%)
+            <div className="mt-6 space-y-4">
+              {rebrandPairsData.map((pair) => (
+                <div
+                  key={pair.label}
+                  className="border border-neutral-200 bg-neutral-50 p-4 flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] font-bold tracking-widest text-blue-700 uppercase">
+                      {pair.label}
+                    </span>
+                    <span className="border border-blue-700/40 bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-bold text-blue-700">
+                      {Math.round(pair.oldActor.confidence * 100)}% Link Score
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-                    <div
-                      className="h-full rounded-full bg-sky-500"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Known Ground-Truth Rebrand Pairs (Live API Scores) */}
-        <section className="rounded-lg border border-slate-800 bg-[#121827] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-100">Ground-Truth Rebrand Pairs</h2>
-          <p className="mt-1 text-xs text-slate-400">Live attribution scores calculated by API pipeline</p>
-
-          <div className="mt-6 space-y-4">
-            {rebrandPairsData.map((pair) => (
-              <div
-                key={pair.label}
-                className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-4 flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-sky-400 uppercase tracking-wide">
-                    {pair.label}
-                  </span>
-                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
-                    {Math.round(pair.oldActor.confidence * 100)}% Link Score
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <Link
-                    href={`/actors/${pair.oldActor.id}`}
-                    className="font-medium text-slate-200 hover:text-sky-400 hover:underline transition truncate"
-                  >
-                    {pair.oldActor.primary_handle}
-                  </Link>
-                  <Link2 className="size-4 shrink-0 text-slate-500" />
-                  <Link
-                    href={`/actors/${pair.newActor.id}`}
-                    className="font-medium text-slate-200 hover:text-sky-400 hover:underline transition truncate text-right"
-                  >
-                    {pair.newActor.primary_handle}
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      {/* Recent High-Confidence Linkages */}
-      <section className="rounded-lg border border-slate-800 bg-[#121827] p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-100">Highest Rebrand Confidence Personas</h2>
-        <p className="mt-1 text-xs text-slate-400">Top attributed personas ordered by entity linkage & stylometry scores</p>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-sm text-slate-300">
-            <thead className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400">
-              <tr>
-                <th className="px-3 py-3 font-semibold">Primary Handle</th>
-                <th className="px-3 py-3 font-semibold">Category</th>
-                <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Rebrand Pair / Link</th>
-                <th className="px-3 py-3 font-semibold text-right">Confidence Score</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {topActors.map((actor) => (
-                <tr key={actor.id} className="hover:bg-slate-800/30 transition">
-                  <td className="px-3 py-3 font-semibold text-slate-100">
-                    <Link href={`/actors/${actor.id}`} className="hover:text-sky-400 hover:underline">
-                      {actor.primary_handle}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-3 capitalize">{actor.category}</td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                        actor.status === "active"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : actor.status === "rebranded"
-                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                          : "bg-slate-800 text-slate-400 border border-slate-700"
-                      }`}
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <Link
+                      href={`/actors/${pair.oldActor.id}`}
+                      className="font-mono font-bold text-neutral-900 hover:text-blue-700 hover:underline transition truncate"
                     >
-                      {actor.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-xs text-slate-400 font-mono">
-                    {actor.matched_actor_id ? (
-                      <Link href={`/actors/${actor.matched_actor_id}`} className="text-sky-400 hover:underline">
-                        {actor.matched_actor_id}
-                      </Link>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-right font-bold text-sky-400">
-                    {Math.round(actor.confidence * 100)}%
-                  </td>
-                </tr>
+                      {pair.oldActor.primary_handle}
+                    </Link>
+                    <Link2 className="size-4 shrink-0 text-neutral-400" />
+                    <Link
+                      href={`/actors/${pair.newActor.id}`}
+                      className="font-mono font-bold text-neutral-900 hover:text-blue-700 hover:underline transition truncate text-right"
+                    >
+                      {pair.newActor.primary_handle}
+                    </Link>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </section>
         </div>
-      </section>
+
+        {/* Recent High-Confidence Linkages */}
+        <section className="border border-neutral-200 bg-white p-6">
+          <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-neutral-500">HIGHEST REBRAND CONFIDENCE PERSONAS</h2>
+          <p className="mt-1 text-xs text-neutral-500">Top attributed personas ordered by entity linkage & stylometry scores</p>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-neutral-200 font-mono text-[11px] tracking-widest text-neutral-500">
+                <tr>
+                  <th className="px-3 py-3">PRIMARY HANDLE</th>
+                  <th className="px-3 py-3">CATEGORY</th>
+                  <th className="px-3 py-3">STATUS</th>
+                  <th className="px-3 py-3">REBRAND PAIR / LINK</th>
+                  <th className="px-3 py-3 text-right">CONFIDENCE</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {topActors.map((actor) => (
+                  <tr key={actor.id} className="hover:bg-neutral-50 transition">
+                    <td className="px-3 py-3 font-mono font-bold text-neutral-900">
+                      <Link href={`/actors/${actor.id}`} className="hover:text-blue-700 hover:underline">
+                        {actor.primary_handle}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3 font-mono text-xs uppercase text-neutral-600">{actor.category}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-block px-2 py-0.5 font-mono text-[11px] font-bold uppercase ${
+                          actor.status === "active"
+                            ? "bg-blue-50 text-blue-700 border border-blue-700/40"
+                            : actor.status === "rebranded"
+                            ? "bg-amber-50 text-amber-700 border border-amber-500/40"
+                            : "bg-neutral-100 text-neutral-500 border border-neutral-200"
+                        }`}
+                      >
+                        {actor.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 text-xs text-neutral-500 font-mono">
+                      {actor.matched_actor_id ? (
+                        <Link href={`/actors/${actor.matched_actor_id}`} className="text-blue-700 hover:underline">
+                          {actor.matched_actor_id}
+                        </Link>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono font-bold text-neutral-900">
+                      {Math.round(actor.confidence * 100)}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
