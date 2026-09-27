@@ -80,7 +80,7 @@ function PrototypeBadge() {
   return (
     <div
       role="status"
-      className="fixed left-3 top-2 z-50 flex items-center gap-2 border border-amber-300 bg-amber-50/95 px-2.5 py-1 shadow-[0_8px_30px_-12px_rgba(217,119,6,0.5)] backdrop-blur"
+      className="fixed left-3 top-14 z-[60] flex items-center gap-2 border border-amber-300 bg-amber-50/95 px-2.5 py-1 shadow-[0_8px_30px_-12px_rgba(217,119,6,0.5)] backdrop-blur sm:top-2"
     >
       <span className="relative flex size-1.5 shrink-0">
         <span className="absolute inline-flex h-full w-full animate-ping bg-amber-500 opacity-60" />
